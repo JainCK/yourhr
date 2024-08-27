@@ -1,8 +1,10 @@
 "use client"
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 const Signup = () => {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -32,8 +34,37 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission and API call
+
+    const submitFormData = new FormData();
+    submitFormData.append("name", formData.name);
+    submitFormData.append("email", formData.email);
+    submitFormData.append("phone", formData.phone);
+    submitFormData.append("experience", formData.experience);
+    submitFormData.append("jobCategory", formData.jobCategory);
+    submitFormData.append("expectedLPA", formData.expectedLPA);
+    if (formData.resume) {
+      submitFormData.append("resume", formData.resume);
+    }
+    submitFormData.append("password", formData.password);
+
+    try {
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        body: submitFormData,
+      });
+
+      if (response.ok) {
+        // Redirect to the dashboard page after successful signup
+        router.push("/dashboard");
+      } else {
+        // Handle error response
+        console.error("Signup failed", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error submitting the form", error);
+    }
   };
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
