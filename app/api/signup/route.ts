@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { writeFile } from 'fs/promises';
-import path from 'path';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-
-const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
