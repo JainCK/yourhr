@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { writeFile } from 'fs/promises';
 import path from 'path';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const prisma = new PrismaClient();
 
@@ -30,12 +31,28 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const s3Client = new S3Client({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
+      },
+    });
+    
     const bytes = await resume.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
+    
     const resumeFileName = `${Date.now()}-${resume.name}`;
-    const resumePath = path.join(process.cwd(), 'uploads', resumeFileName);
-    await writeFile(resumePath, buffer);
+    const uploadParams = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: resumeFileName,
+      Body: buffer,
+      ContentType: resume.type,
+    };
+    
+    await s3Client.send(new PutObjectCommand(uploadParams));
+    
+    const resumeUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${resumeFileName}`;
 
     const newUser = await prisma.user.create({
       data: {
@@ -45,7 +62,7 @@ export async function POST(request: NextRequest) {
         experience: parseInt(experience),
         jobCategory,
         expectedLPA: parseFloat(expectedLPA),
-        resume: `/uploads/${resumeFileName}`,
+        resume: resumeUrl,
         password: hashedPassword,
       },
     });
